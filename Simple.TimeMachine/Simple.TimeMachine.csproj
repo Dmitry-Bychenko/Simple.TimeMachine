@@ -9,6 +9,12 @@
     <Authors>Dmitrii Bychenko</Authors>
     <Copyright>Copyright (c) 2024 Dmitrii Bychenko</Copyright>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <PackageReleaseNotes>Time Machine (TimeProvider) for testing</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/Dmitry-Bychenko/Simple.TimeMachine</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Dmitry-Bychenko/Simple.TimeMachine</PackageProjectUrl>
+    <Description>Time Machine (Time Provider for testing)</Description>
+    <PackageIcon>TimeMachine.png</PackageIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,5 +24,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\TimeMachine.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

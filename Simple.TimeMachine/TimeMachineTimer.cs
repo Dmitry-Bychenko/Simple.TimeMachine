@@ -33,18 +33,15 @@ public sealed class TimeMachineTimer : ITimer {
   /// </summary>
   public bool Enabled {
     get {
-      if (IsDisposed) {
+      if (IsDisposed) 
         return false;
-      }
-
-      if (Offset.Ticks < 0) {
+      
+      if (Offset.Ticks < 0) 
         return false;
-      }
-
-      if (Period.Ticks > 0) {
+      
+      if (Period.Ticks > 0) 
         return true;
-      }
-
+      
       return Offset >= Provider!.GetUtcNow() - Provider!.StartTime;
     }
   }
@@ -65,37 +62,32 @@ public sealed class TimeMachineTimer : ITimer {
   /// <param name="period">Period</param>
   /// <returns>If changed</returns>
   public bool Change(TimeSpan offset, TimeSpan period) {
-    if (Provider is null) {
+    if (Provider is null) 
       return false;
-    }
-
+    
     Offset = offset;
     Period = period;
 
-    if (Offset.Ticks >= 0 && Provider.StartTime + Offset == Provider.GetUtcNow()) {
+    if (Offset.Ticks >= 0 && Provider.StartTime + Offset == Provider.GetUtcNow()) 
       Fire();
-    }
-
+    
     return true;
   }
 
   internal void Fire() {
-    if (_callback is not null) {
+    if (_callback is not null) 
       _callback(_state);
-    }
   }
 
   internal bool NextFireTime(out DateTimeOffset time) {
     time = default;
 
-    if (Provider is null) {
+    if (Provider is null) 
       return false;
-    }
-
-    if (!Enabled) {
+    
+    if (!Enabled) 
       return false;
-    }
-
+    
     if (Period.Ticks <= 0) {
       time = Provider.StartTime + Offset;
 
@@ -110,16 +102,14 @@ public sealed class TimeMachineTimer : ITimer {
 
     long step = (Provider.GetUtcNow() - Provider.StartTime - Offset).Ticks / Period.Ticks;
 
-    if (step < 0) {
+    if (step < 0) 
       step += 1;
-    }
-
+    
     time = Provider.StartTime + Offset + step * Period;
 
-    if (time <= Provider.GetUtcNow()) {
+    if (time <= Provider.GetUtcNow()) 
       time += Period;
-    }
-
+    
     return true;
   }
 
