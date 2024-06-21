@@ -1,10 +1,12 @@
-﻿namespace Simple.TimeMachine;
+﻿using System.Globalization;
+
+namespace Simple.TimeMachine;
 
 /// <summary>
 /// Time Machine Time Provider
 /// </summary>
 public sealed class TimeMachineTimeProvider : TimeProvider {
-  private DateTimeOffset _currentTime;
+  private DateTimeOffset _utcCurrentTime;
 
   private readonly List<TimeMachineTimer> _timers = [];
 
@@ -13,12 +15,12 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// <summary>
   /// Start Time
   /// </summary>
-  public DateTimeOffset StartTime { get; }
+  public DateTimeOffset UtcStartTime { get; }
 
   /// <summary>
   /// Current Time
   /// </summary>
-  public DateTimeOffset CurrentTime {
+  public DateTimeOffset UtcCurrentTime {
     get => GetUtcNow();
     set => ChangeTime(value.ToUniversalTime());
   }
@@ -27,12 +29,12 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// Duration
   /// </summary>
   public TimeSpan Duration {
-    get => _currentTime - StartTime;
+    get => _utcCurrentTime - UtcStartTime;
     set {
-      if (StartTime + value < _currentTime) 
+      if (UtcStartTime + value < _utcCurrentTime) 
         throw new ArgumentOutOfRangeException(nameof(value), "Backward movement is not allowed");
       
-      ChangeTime(StartTime + value);
+      ChangeTime(UtcStartTime + value);
     }
   }
 
@@ -57,10 +59,10 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// <param name="startTime">Start Up Time</param>
   /// <param name="localTimeZone">Time Zone (UTC by default)</param>
   public TimeMachineTimeProvider(DateTimeOffset startTime, TimeZoneInfo? localTimeZone = default) {
-    StartTime = startTime.ToUniversalTime();
+    UtcStartTime = startTime.ToUniversalTime();
     LocalTimeZone = localTimeZone ?? TimeZoneInfo.Utc;
 
-    _currentTime = StartTime;
+    _utcCurrentTime = UtcStartTime;
   }
 
   /// <summary>
@@ -74,13 +76,13 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// Current time stamp in nanoseconds
   /// </summary>
   /// <returns>Nanoseconds from Start Time</returns>
-  public override long GetTimestamp() => (_currentTime.Ticks - StartTime.Ticks) * 100L;
+  public override long GetTimestamp() => (_utcCurrentTime.Ticks - UtcStartTime.Ticks) * 100L;
   
   /// <summary>
   /// Current Time (UTC)
   /// </summary>
   /// <returns>Current Time in UTC</returns>
-  public override DateTimeOffset GetUtcNow() => _currentTime;
+  public override DateTimeOffset GetUtcNow() => _utcCurrentTime;
   
   /// <summary>
   /// Create Fake Timer
@@ -107,9 +109,9 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// </summary>
   /// <param name="period">Period to Add</param>
   /// <exception cref="ArgumentOutOfRangeException">When trying to move backward</exception>
-  public void Move(TimeSpan period) {
+  public void Adjust(TimeSpan period) {
     if (period.Ticks < 0) 
-      throw new ArgumentOutOfRangeException(nameof(period), "It can't be moved backward");
+      throw new ArgumentOutOfRangeException(nameof(period), "Time can't be moved backward");
     
     if (period.Ticks == 0) 
       return;
@@ -122,67 +124,72 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// </summary>
   /// <param name="exactTime">Exact Time to Move</param>
   /// <exception cref="ArgumentOutOfRangeException">When trying to move backward</exception>
-  public void Move(DateTimeOffset exactTime) {
+  public void Adjust(DateTimeOffset exactTime) {
     exactTime = exactTime.ToUniversalTime();
 
     if (exactTime < GetUtcNow()) 
-      throw new ArgumentOutOfRangeException(nameof(exactTime), "It can't be moved backward");
-    
+      throw new ArgumentOutOfRangeException(nameof(exactTime), "Time can't be moved backward");
+
     ChangeTime(exactTime);
   }
+
+  /// <summary>
+  /// To String representation
+  /// </summary>
+  public override string ToString() => GetUtcNow().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
 
   private void ChangeTime(DateTimeOffset time) {
     time = time.ToUniversalTime();
 
-    if (time == _currentTime) 
+    if (time == _utcCurrentTime) 
       return;
     
-    if (time < _currentTime) 
+    if (time < _utcCurrentTime) 
       throw new ArgumentOutOfRangeException(nameof(time), "Time Provider can't move to the past");
     
     // Scan and fire all timers
     List<TimeMachineTimer> timersToFire = [];
 
-    var savedChangingTime = _changingTime;
+    while (true) {
+      timersToFire.Clear();
 
-    try {
-      _changingTime = true;
+      DateTimeOffset nearest = default;
 
-      while (true) {
-        timersToFire.Clear();
-
-        DateTimeOffset nearest = default;
-
-        foreach (TimeMachineTimer timer in _timers)
-          if (timer.NextFireTime(out var fireTime) && fireTime <= time) {
-            if (timersToFire.Count == 0 || nearest == fireTime) {
-              nearest = fireTime;
-              timersToFire.Add(timer);
-            }
-            else if (timersToFire.Count > 0 && fireTime < nearest) {
-              timersToFire.Clear();
-
-              nearest = fireTime;
-              timersToFire.Add(timer);
-            }
+      foreach (TimeMachineTimer timer in _timers)
+        if (timer.NextFireTime(out var fireTime) && fireTime <= time) {
+          if (timersToFire.Count == 0 || nearest == fireTime) {
+            nearest = fireTime;
+            timersToFire.Add(timer);
           }
+          else if (timersToFire.Count > 0 && fireTime < nearest) {
+            timersToFire.Clear();
 
-        if (timersToFire.Count <= 0) 
-          break;
-        
-        _currentTime = nearest;
+            nearest = fireTime;
+            timersToFire.Add(timer);
+          }
+        }
 
-        foreach (var timer in timersToFire) 
+      if (timersToFire.Count <= 0)
+        break;
+
+      _utcCurrentTime = nearest;
+
+      var savedChangingTime = _changingTime;
+
+      try {
+        _changingTime = true;
+
+        foreach (var timer in timersToFire)
           timer.Fire();
       }
+      finally {
+        _changingTime = savedChangingTime;
+      }
 
-      _currentTime = time;
-    }
-    finally {
-      _changingTime = savedChangingTime;
+      Compress();
     }
 
-    Compress();
+    _utcCurrentTime = time;
   }
 
   internal void Compress() {

@@ -1,4 +1,6 @@
-﻿namespace Simple.TimeMachine;
+﻿using System.Globalization;
+
+namespace Simple.TimeMachine;
 
 /// <summary>
 /// Time Machine Timer for the Timer Provider
@@ -42,7 +44,7 @@ public sealed class TimeMachineTimer : ITimer {
       if (Period.Ticks > 0) 
         return true;
       
-      return Offset >= Provider!.GetUtcNow() - Provider!.StartTime;
+      return Offset >= Provider!.GetUtcNow() - Provider!.UtcStartTime;
     }
   }
 
@@ -68,10 +70,26 @@ public sealed class TimeMachineTimer : ITimer {
     Offset = offset;
     Period = period;
 
-    if (Offset.Ticks >= 0 && Provider.StartTime + Offset == Provider.GetUtcNow()) 
+    if (Offset.Ticks >= 0 && Provider.UtcStartTime + Offset == Provider.GetUtcNow()) 
       Fire();
     
     return true;
+  }
+
+  /// <summary>
+  /// To String (debug) 
+  /// </summary>
+  public override string ToString() {
+    if (Provider is null)
+      return "Disposed timer";
+
+    if (Offset.Ticks < 0)
+      return "Disabled timer";
+
+    if (Period.Ticks <= 0)
+      return $"Timer runs once at {Provider.UtcStartTime.Add(Offset).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture)}";
+
+    return $"Timer runs periodically, starts at {Provider.UtcStartTime.Add(Offset).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture)} with {Period.ToString("G", CultureInfo.InvariantCulture)} period";
   }
 
   internal void Fire() {
@@ -89,9 +107,9 @@ public sealed class TimeMachineTimer : ITimer {
       return false;
     
     if (Period.Ticks <= 0) {
-      time = Provider.StartTime + Offset;
+      time = Provider.UtcStartTime + Offset;
 
-      if (time <= Provider.CurrentTime) {
+      if (time <= Provider.UtcCurrentTime) {
         time = default;
 
         return false;
@@ -100,12 +118,12 @@ public sealed class TimeMachineTimer : ITimer {
       return true;
     }
 
-    long step = (Provider.GetUtcNow() - Provider.StartTime - Offset).Ticks / Period.Ticks;
+    long step = (Provider.GetUtcNow() - Provider.UtcStartTime - Offset).Ticks / Period.Ticks;
 
     if (step < 0) 
       step += 1;
     
-    time = Provider.StartTime + Offset + step * Period;
+    time = Provider.UtcStartTime + Offset + step * Period;
 
     if (time <= Provider.GetUtcNow()) 
       time += Period;
