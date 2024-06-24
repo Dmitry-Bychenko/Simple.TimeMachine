@@ -10,7 +10,7 @@ public sealed class TimeMachineTimeProviderTest {
     var provider = new TimeMachineTimeProvider(time, TimeZoneInfo.Local);
 
     // Assert
-    Assert.Equal(time.ToUniversalTime(), provider.CurrentTime);
+    Assert.Equal(time.ToUniversalTime(), provider.UtcCurrentTime);
   }
 
   [Theory]
@@ -25,7 +25,7 @@ public sealed class TimeMachineTimeProviderTest {
     var provider = new TimeMachineTimeProvider(time);
 
     // Act
-    provider.Move(TimeSpan.FromSeconds(seconds));
+    provider.Adjust(TimeSpan.FromSeconds(seconds));
 
     // Assert
     Assert.Equal(time.AddSeconds(seconds), provider.GetUtcNow());
@@ -65,7 +65,7 @@ public sealed class TimeMachineTimeProviderTest {
     provider.CreateTimer(item => { calls.Add(item as string); }, "B", TimeSpan.FromSeconds(2),
         TimeSpan.FromSeconds(3));
 
-    provider.Move(TimeSpan.FromSeconds(9));
+    provider.Adjust(TimeSpan.FromSeconds(9));
 
     // Assert
     Assert.Equal("A.B.B.B", string.Join('.', calls));

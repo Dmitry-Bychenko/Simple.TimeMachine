@@ -16,7 +16,7 @@ public static class TimeMachineTimeProviderExtensions
         ArgumentNullException.ThrowIfNull(steps);
 
         foreach (var step in steps)
-            provider.Move(step);
+            provider.Adjust(step);
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ public static class TimeMachineTimeProviderExtensions
         ArgumentNullException.ThrowIfNull(exactTimes);
 
         foreach (var step in exactTimes.OrderBy(item => item))
-            provider.Move(step);
+            provider.Adjust(step);
     }
 
     /// <summary>
@@ -44,6 +44,6 @@ public static class TimeMachineTimeProviderExtensions
         ArgumentNullException.ThrowIfNull(exactTimes);
 
         foreach (var step in exactTimes.OrderBy(item => item))
-            provider.Move(step);
+            provider.Adjust(step);
     }
 }

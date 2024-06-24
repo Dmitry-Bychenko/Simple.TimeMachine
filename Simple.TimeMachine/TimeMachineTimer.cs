@@ -51,7 +51,7 @@ public sealed class TimeMachineTimer : ITimer
                 return true;
             }
 
-            return Offset >= Provider!.GetUtcNow() - Provider!.StartTime;
+            return Offset >= Provider!.GetUtcNow() - Provider!.UtcStartTime;
         }
     }
 
@@ -86,7 +86,7 @@ public sealed class TimeMachineTimer : ITimer
         Offset = offset;
         Period = period;
 
-        if (Offset.Ticks >= 0 && Provider.StartTime + Offset == Provider.GetUtcNow())
+        if (Offset.Ticks >= 0 && Provider.UtcStartTime + Offset == Provider.GetUtcNow())
         {
             Fire();
         }
@@ -120,9 +120,9 @@ public sealed class TimeMachineTimer : ITimer
 
         if (Period.Ticks <= 0)
         {
-            time = Provider.StartTime + Offset;
+            time = Provider.UtcStartTime + Offset;
 
-            if (time <= Provider.CurrentTime)
+            if (time <= Provider.UtcCurrentTime)
             {
                 time = default;
 
@@ -132,14 +132,14 @@ public sealed class TimeMachineTimer : ITimer
             return true;
         }
 
-        long step = (Provider.GetUtcNow() - Provider.StartTime - Offset).Ticks / Period.Ticks;
+        long step = (Provider.GetUtcNow() - Provider.UtcStartTime - Offset).Ticks / Period.Ticks;
 
         if (step < 0)
         {
             step += 1;
         }
 
-        time = Provider.StartTime + Offset + step * Period;
+        time = Provider.UtcStartTime + Offset + step * Period;
 
         if (time <= Provider.GetUtcNow())
         {
