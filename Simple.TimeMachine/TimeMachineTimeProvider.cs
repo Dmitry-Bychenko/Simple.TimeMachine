@@ -31,9 +31,9 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   public TimeSpan Duration {
     get => _utcCurrentTime - UtcStartTime;
     set {
-      if (UtcStartTime + value < _utcCurrentTime) 
+      if (UtcStartTime + value < _utcCurrentTime)
         throw new ArgumentOutOfRangeException(nameof(value), "Backward movement is not allowed");
-      
+
       ChangeTime(UtcStartTime + value);
     }
   }
@@ -77,13 +77,13 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// </summary>
   /// <returns>Nanoseconds from Start Time</returns>
   public override long GetTimestamp() => (_utcCurrentTime.Ticks - UtcStartTime.Ticks) * 100L;
-  
+
   /// <summary>
   /// Current Time (UTC)
   /// </summary>
   /// <returns>Current Time in UTC</returns>
   public override DateTimeOffset GetUtcNow() => _utcCurrentTime;
-  
+
   /// <summary>
   /// Create Fake Timer
   /// </summary>
@@ -110,12 +110,12 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   /// <param name="period">Period to Add</param>
   /// <exception cref="ArgumentOutOfRangeException">When trying to move backward</exception>
   public void Adjust(TimeSpan period) {
-    if (period.Ticks < 0) 
+    if (period.Ticks < 0)
       throw new ArgumentOutOfRangeException(nameof(period), "Time can't be moved backward");
-    
-    if (period.Ticks == 0) 
+
+    if (period.Ticks == 0)
       return;
-    
+
     ChangeTime(GetUtcNow() + period);
   }
 
@@ -127,7 +127,7 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   public void Adjust(DateTimeOffset exactTime) {
     exactTime = exactTime.ToUniversalTime();
 
-    if (exactTime < GetUtcNow()) 
+    if (exactTime < GetUtcNow())
       throw new ArgumentOutOfRangeException(nameof(exactTime), "Time can't be moved backward");
 
     ChangeTime(exactTime);
@@ -141,12 +141,12 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   private void ChangeTime(DateTimeOffset time) {
     time = time.ToUniversalTime();
 
-    if (time == _utcCurrentTime) 
+    if (time == _utcCurrentTime)
       return;
-    
-    if (time < _utcCurrentTime) 
+
+    if (time < _utcCurrentTime)
       throw new ArgumentOutOfRangeException(nameof(time), "Time Provider can't move to the past");
-    
+
     // Scan and fire all timers
     List<TimeMachineTimer> timersToFire = [];
 
@@ -193,15 +193,15 @@ public sealed class TimeMachineTimeProvider : TimeProvider {
   }
 
   internal void Compress() {
-    if (_changingTime) 
+    if (_changingTime)
       return;
-    
+
     int left = 0;
 
-    for (int i = 0; i < _timers.Count; ++i) 
-      if (!_timers[i].IsDisposed) 
+    for (int i = 0; i < _timers.Count; ++i)
+      if (!_timers[i].IsDisposed)
         _timers[left++] = _timers[i];
-    
+
     _timers.RemoveRange(left, _timers.Count - left);
   }
 }
